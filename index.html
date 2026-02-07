@@ -189,14 +189,18 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .option-button:hover {
-      border-color: var(--accent-gold);
-      background-color: rgba(201, 168, 124, 0.08);
+    @media (hover: hover) {
+      .option-button:hover {
+        border-color: var(--accent-gold);
+        background-color: rgba(201, 168, 124, 0.08);
+      }
     }
 
     .option-button:active {
-      background-color: rgba(201, 168, 124, 0.20);
-      transform: scale(0.97);
+      background-color: rgba(201, 168, 124, 0.30);
+      border-color: var(--accent-gold);
+      transform: scale(0.95);
+      transition: all 0.05s ease;
     }
 
     .option-button.selected {
