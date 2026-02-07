@@ -194,6 +194,11 @@
       background-color: rgba(201, 168, 124, 0.08);
     }
 
+    .option-button:active {
+      background-color: rgba(201, 168, 124, 0.20);
+      transform: scale(0.97);
+    }
+
     .option-button.selected {
       border-color: var(--accent-gold);
       background-color: rgba(201, 168, 124, 0.12);
@@ -905,6 +910,7 @@
           renderQuestion(nextId);
         }
         AppState.isTransitioning = false;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }, question.microCopy ? 800 : 300);
     }
 
@@ -943,9 +949,9 @@
       DOM.resultScreen.classList.remove('hidden');
     }
 
-    function handleLineClick() {
-      // LINEクリックをSupabaseに記録
-      saveToSupabase({ line_clicked: true });
+    async function handleLineClick() {
+      // LINEクリックをSupabaseに記録（保存完了を待ってから遷移）
+      await saveToSupabase({ line_clicked: true });
 
       window.location.href = 'https://lin.ee/0zcZZyg';
     }
