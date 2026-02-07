@@ -570,9 +570,13 @@
       }
     }
 
+    // セッション開始時刻
+    let sessionStartTime = null;
+
     // セッション開始（Q1クリック時）
     async function startSession() {
       sessionId = generateUUID();
+      sessionStartTime = Date.now();
       const utmParams = getUTMParams();
       const deviceInfo = getDeviceInfo();
 
@@ -586,7 +590,12 @@
     // 離脱時に最終状態を保存
     window.addEventListener('beforeunload', function() {
       if (sessionId && SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
-        const data = JSON.stringify({ id: sessionId, last_question: lastQuestionId });
+        const duration = sessionStartTime ? Math.round((Date.now() - sessionStartTime) / 1000) : null;
+        const data = JSON.stringify({
+          id: sessionId,
+          last_question: lastQuestionId,
+          session_duration: duration
+        });
         navigator.sendBeacon(
           `${SUPABASE_URL}/rest/v1/scenario_chatbot?on_conflict=id`,
           new Blob([data], { type: 'application/json' })
@@ -924,10 +933,12 @@
       const diagnosisKey = Object.keys(DIAGNOSIS_TYPES).find(
         key => DIAGNOSIS_TYPES[key] === result
       );
+      const duration = sessionStartTime ? Math.round((Date.now() - sessionStartTime) / 1000) : null;
       saveToSupabase({
         diagnosis_type: diagnosisKey,
         completed: true,
-        last_question: 'result'
+        last_question: 'result',
+        session_duration: duration
       });
 
       DOM.resultType.textContent = result.name;
