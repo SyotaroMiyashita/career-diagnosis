@@ -555,7 +555,7 @@
       }
       try {
         const { error } = await supabaseClient
-          .from('chatbot_responses')
+          .from('scenario_chatbot')
           .upsert({ id: sessionId, ...data });
         if (error) {
           console.error('[Supabase] Error:', error);
@@ -585,7 +585,7 @@
       if (sessionId && SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
         const data = JSON.stringify({ id: sessionId, last_question: lastQuestionId });
         navigator.sendBeacon(
-          `${SUPABASE_URL}/rest/v1/chatbot_responses?on_conflict=id`,
+          `${SUPABASE_URL}/rest/v1/scenario_chatbot?on_conflict=id`,
           new Blob([data], { type: 'application/json' })
         );
       }
