@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FAF8F5">
+  <meta name="description" content="AIキャリアアドバイザーXaiがあなたのキャリアを診断。IT・コンサル領域の転職をサポート。">
+
+  <title>AI Career Analysis | Xai</title>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Noto+Serif+JP:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-primary: #FAF8F5;
+      --bg-card: #FFFFFF;
+      --text-primary: #2C2825;
+      --text-secondary: #6B635B;
+      --text-tertiary: #9A938B;
+      --accent-orange: #E05A2B;
+      --accent-gold: #C9A87C;
+      --border-color: #E8E4DF;
+      --space-xs: 8px;
+      --space-sm: 16px;
+      --space-md: 24px;
+      --space-lg: 32px;
+      --space-xl: 48px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --transition-fast: 0.2s ease;
+      --transition-normal: 0.3s ease;
+      --font-serif: 'Noto Serif JP', serif;
+      --font-sans: 'Noto Sans JP', sans-serif;
+      --xai-color: #C9A87C;
+      --user-color: #E05A2B;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ============================================
+       HEADER
+       ============================================ */
+    .chat-header {
+      background-color: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: var(--space-sm);
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .chat-header-title {
+      font-family: var(--font-serif);
+      font-size: 0.875rem;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      color: var(--text-primary);
+    }
+
+    /* ============================================
+       CHAT AREA
+       ============================================ */
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-sm);
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+      scroll-behavior: smooth;
+    }
+
+    .chat-message {
+      display: flex;
+      gap: var(--space-xs);
+      margin-bottom: var(--space-sm);
+      animation: fadeInUp 0.3s ease forwards;
+      opacity: 0;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Xai (left) */
+    .chat-message.xai {
+      align-items: flex-start;
+    }
+
+    .xai-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-gold), #B8956A);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #FFF;
+      font-family: var(--font-serif);
+    }
+
+    .xai-content {
+      max-width: 80%;
+    }
+
+    .xai-name {
+      font-size: 0.6875rem;
+      color: var(--text-tertiary);
+      margin-bottom: 2px;
+      margin-left: 4px;
+    }
+
+    .xai-bubble {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 0 var(--radius-md) var(--radius-md) var(--radius-md);
+      padding: var(--space-sm);
+      font-size: 0.9375rem;
+      line-height: 1.7;
+      color: var(--text-primary);
+      box-shadow: 0 1px 4px rgba(44, 40, 37, 0.04);
+    }
+
+    /* User (right) */
+    .chat-message.user {
+      justify-content: flex-end;
+    }
+
+    .user-bubble {
+      max-width: 75%;
+      background-color: rgba(201, 168, 124, 0.15);
+      border: 1px solid var(--accent-gold);
+      border-radius: var(--radius-md) 0 var(--radius-md) var(--radius-md);
+      padding: var(--space-sm);
+      font-size: 0.9375rem;
+      line-height: 1.7;
+      color: var(--text-primary);
+    }
+
+    /* Option buttons inside chat */
+    .chat-options {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      margin-top: var(--space-xs);
+      margin-left: 44px;
+    }
+
+    .chat-option-btn {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px var(--space-sm);
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      text-align: left;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      animation: fadeInUp 0.3s ease forwards;
+      opacity: 0;
+    }
+
+    .chat-option-btn:nth-child(1) { animation-delay: 0.1s; }
+    .chat-option-btn:nth-child(2) { animation-delay: 0.15s; }
+    .chat-option-btn:nth-child(3) { animation-delay: 0.2s; }
+    .chat-option-btn:nth-child(4) { animation-delay: 0.25s; }
+    .chat-option-btn:nth-child(5) { animation-delay: 0.3s; }
+    .chat-option-btn:nth-child(6) { animation-delay: 0.35s; }
+    .chat-option-btn:nth-child(7) { animation-delay: 0.4s; }
+    .chat-option-btn:nth-child(8) { animation-delay: 0.45s; }
+
+    @media (hover: hover) {
+      .chat-option-btn:hover {
+        border-color: var(--accent-gold);
+        background-color: rgba(201, 168, 124, 0.08);
+      }
+    }
+
+    .chat-option-btn.primary {
+      background-color: var(--accent-orange);
+      border-color: var(--accent-orange);
+      color: #FFFFFF;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .chat-option-btn.primary:hover {
+      background-color: #c94e24;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 4px 0;
+    }
+
+    .typing-indicator span {
+      width: 6px;
+      height: 6px;
+      background-color: var(--text-tertiary);
+      border-radius: 50%;
+      animation: typingBounce 1.2s ease-in-out infinite;
+    }
+
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    /* ============================================
+       INPUT AREA
+       ============================================ */
+    .chat-input-area {
+      background-color: var(--bg-card);
+      border-top: 1px solid var(--border-color);
+      padding: var(--space-sm);
+      flex-shrink: 0;
+      display: none;
+    }
+
+    .chat-input-area.visible {
+      display: flex;
+      gap: var(--space-xs);
+      align-items: flex-end;
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .chat-input {
+      flex: 1;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px var(--space-sm);
+      font-family: var(--font-sans);
+      font-size: 0.9375rem;
+      color: var(--text-primary);
+      background-color: var(--bg-primary);
+      resize: none;
+      max-height: 100px;
+      line-height: 1.5;
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--accent-gold);
+    }
+
+    .chat-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    .chat-send-btn {
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 50%;
+      background-color: var(--accent-gold);
+      color: #FFF;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background-color var(--transition-fast);
+    }
+
+    .chat-send-btn:hover {
+      background-color: #B8956A;
+    }
+
+    .chat-send-btn:disabled {
+      background-color: var(--border-color);
+      cursor: not-allowed;
+    }
+
+    .char-count {
+      font-size: 0.6875rem;
+      color: var(--text-tertiary);
+      text-align: right;
+      margin-top: 2px;
+    }
+
+    /* ============================================
+       RESULT CARD (inside chat)
+       ============================================ */
+    .result-card-chat {
+      background-color: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+      margin-top: var(--space-xs);
+      margin-left: 44px;
+      box-shadow: 0 2px 12px rgba(44, 40, 37, 0.06);
+      max-width: calc(100% - 44px);
+    }
+
+    .result-type-chat {
+      font-family: var(--font-serif);
+      font-size: 1.375rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.3;
+      margin-bottom: var(--space-xs);
+    }
+
+    .result-tagline-chat {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      font-style: italic;
+      margin-bottom: var(--space-sm);
+    }
+
+    .result-divider-chat {
+      width: 48px;
+      height: 2px;
+      background-color: var(--accent-gold);
+      margin-bottom: var(--space-sm);
+    }
+
+    .market-position-chat {
+      display: inline-block;
+      background-color: rgba(201, 168, 124, 0.15);
+      color: var(--text-primary);
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: var(--space-sm);
+    }
+
+    .result-description-chat {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: var(--space-sm);
+    }
+
+    .strength-tags-chat {
+      display: flex;
+      gap: var(--space-xs);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-sm);
+    }
+
+    .strength-tag-chat {
+      background-color: var(--bg-primary);
+      color: var(--text-secondary);
+      font-size: 0.6875rem;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+    }
+
+    .next-step-chat {
+      background-color: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      padding: var(--space-sm);
+      margin-bottom: var(--space-sm);
+    }
+
+    .next-step-label-chat {
+      font-size: 0.625rem;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 2px;
+    }
+
+    .next-step-text-chat {
+      font-size: 0.8125rem;
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    /* CTA inside chat */
+    .cta-section-chat {
+      margin-top: var(--space-sm);
+      margin-left: 44px;
+      max-width: calc(100% - 44px);
+    }
+
+    .cta-benefit-chat {
+      font-family: var(--font-serif);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--accent-orange);
+      text-align: center;
+      margin-bottom: var(--space-sm);
+      letter-spacing: 0.03em;
+    }
+
+    .cta-button-chat {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      background-color: var(--accent-orange);
+      border: none;
+      border-radius: var(--radius-md);
+      padding: var(--space-sm);
+      font-family: var(--font-sans);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: #FFFFFF;
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+    }
+
+    .cta-button-chat:hover { background-color: #c94e24; }
+
+    .cta-button-chat .line-icon { width: 20px; height: 20px; fill: #FFFFFF; }
+
+    .cta-note-chat {
+      font-size: 0.6875rem;
+      color: var(--text-tertiary);
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .retry-link-chat {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      text-align: center;
+      margin-top: var(--space-sm);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* Footer */
+    .app-footer {
+      text-align: center;
+      padding: var(--space-xs);
+      flex-shrink: 0;
+    }
+
+    .app-footer p {
+      font-size: 0.6875rem;
+      color: var(--text-tertiary);
+      letter-spacing: 0.05em;
+    }
+
+    @media (max-width: 480px) {
+      .chat-container { padding: var(--space-xs); }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="chat-header">
+    <span class="chat-header-title">AI Career Analysis</span>
+  </header>
+
+  <div class="chat-container" id="chat-container"></div>
+
+  <div class="chat-input-area" id="chat-input-area">
+    <div style="flex:1;">
+      <textarea class="chat-input" id="chat-input" rows="1" maxlength="200" placeholder="メッセージを入力..."></textarea>
+      <div class="char-count"><span id="char-count">0</span>/200</div>
+    </div>
+    <button class="chat-send-btn" id="chat-send-btn" disabled>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+    </button>
+  </div>
+
+  <footer class="app-footer">
+    <p>xHuman AI Inc.</p>
+  </footer>
+
+  <script>
+    // ============================================
+    // SUPABASE CONFIGURATION
+    // ============================================
+    const SUPABASE_URL = 'https://llgjjmoepjomjsjqhrij.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsZ2pqbW9lcGpvbWpzanFocmlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzNzQ5NjUsImV4cCI6MjA4NTk1MDk2NX0.hDSDVwysxjp3lvLbyV6rzGZhU-divNoFBTh16JCrHr8';
+    const EDGE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/ai-career-chat';
+
+    let supabaseClient = null;
+    try {
+      if (window.supabase) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch (e) {
+      console.warn('[Supabase] SDK初期化失敗:', e);
+    }
+
+    // ============================================
+    // UUID
+    // ============================================
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    // ============================================
+    // STATE
+    // ============================================
+    const State = {
+      scenarioSessionId: null,
+      aiSessionId: null,
+      sessionStartTime: null,
+      answers: {},
+      currentStep: null,
+      aiMessages: [],
+      messageOrder: 0,
+      isProcessing: false,
+      lastQuestionId: 'q1'
+    };
+
+    // ============================================
+    // DOM
+    // ============================================
+    const chatContainer = document.getElementById('chat-container');
+    const chatInputArea = document.getElementById('chat-input-area');
+    const chatInput = document.getElementById('chat-input');
+    const chatSendBtn = document.getElementById('chat-send-btn');
+    const charCount = document.getElementById('char-count');
+
+    // ============================================
+    // UTILITY
+    // ============================================
+    function getUTMParams() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        utm_source: params.get('utm_source') || null,
+        utm_medium: params.get('utm_medium') || null,
+        utm_campaign: params.get('utm_campaign') || null
+      };
+    }
+
+    function getDeviceInfo() {
+      const ua = navigator.userAgent;
+      let device = 'desktop';
+      if (/iPhone|iPad|iPod/i.test(ua)) device = 'ios';
+      else if (/Android/i.test(ua)) device = 'android';
+      else if (/Mobile/i.test(ua)) device = 'mobile';
+      return { device, user_agent: ua.substring(0, 500) };
+    }
+
+    function scrollToBottom() {
+      setTimeout(function() {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }, 50);
+    }
+
+    // ============================================
+    // SUPABASE: scenario_chatbot
+    // ============================================
+    async function saveScenario(data) {
+      if (!supabaseClient || !State.scenarioSessionId) return;
+      try {
+        await supabaseClient.from('scenario_chatbot').upsert({
+          id: State.scenarioSessionId, ...data
+        });
+      } catch (e) {
+        console.error('[Supabase] scenario save failed:', e);
+      }
+    }
+
+    // ============================================
+    // SUPABASE: ai_chatbot_sessions / messages
+    // ============================================
+    async function createAiSession() {
+      if (!supabaseClient) return;
+      State.aiSessionId = generateUUID();
+      try {
+        await supabaseClient.from('ai_chatbot_sessions').insert({
+          id: State.aiSessionId,
+          scenario_session_id: State.scenarioSessionId
+        });
+      } catch (e) {
+        console.error('[Supabase] ai session create failed:', e);
+      }
+    }
+
+    async function saveAiMessage(role, content) {
+      if (!supabaseClient || !State.aiSessionId) return;
+      State.messageOrder++;
+      try {
+        await supabaseClient.from('ai_chatbot_messages').insert({
+          session_id: State.aiSessionId,
+          role: role,
+          content: content,
+          message_order: State.messageOrder
+        });
+      } catch (e) {
+        console.error('[Supabase] ai message save failed:', e);
+      }
+    }
+
+    async function saveAiSessionResult(data) {
+      if (!supabaseClient || !State.aiSessionId) return;
+      try {
+        await supabaseClient.from('ai_chatbot_messages').insert({
+          session_id: State.aiSessionId,
+          role: 'system_result',
+          content: JSON.stringify(data),
+          message_order: ++State.messageOrder
+        });
+      } catch (e) {
+        console.error('[Supabase] ai session result save failed:', e);
+      }
+    }
+
+    // ============================================
+    // EXIT HANDLER
+    // ============================================
+    let exitSaved = false;
+    function saveExitData() {
+      if (exitSaved || !State.scenarioSessionId || !supabaseClient) return;
+      exitSaved = true;
+      const duration = State.sessionStartTime ? Math.round((Date.now() - State.sessionStartTime) / 1000) : null;
+      const payload = JSON.stringify({
+        id: State.scenarioSessionId,
+        last_question: State.lastQuestionId,
+        session_duration: duration
+      });
+      try {
+        fetch(SUPABASE_URL + '/rest/v1/scenario_chatbot?on_conflict=id', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: payload,
+          keepalive: true
+        });
+      } catch (e) { /* silent */ }
+    }
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'hidden') saveExitData();
+    });
+    window.addEventListener('beforeunload', saveExitData);
+
+    // ============================================
+    // CHAT UI HELPERS
+    // ============================================
+    function escapeHTML(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function addXaiBubble(text, isHTML) {
+      const msg = document.createElement('div');
+      msg.className = 'chat-message xai';
+      const bubble = document.createElement('div');
+      bubble.className = 'xai-bubble';
+      if (isHTML) {
+        bubble.innerHTML = text;
+      } else {
+        bubble.textContent = text;
+      }
+      msg.innerHTML =
+        '<div class="xai-avatar">X</div>' +
+        '<div class="xai-content">' +
+          '<div class="xai-name">Xai</div>' +
+        '</div>';
+      msg.querySelector('.xai-content').appendChild(bubble);
+      chatContainer.appendChild(msg);
+      scrollToBottom();
+      return msg;
+    }
+
+    function addUserBubble(text) {
+      const msg = document.createElement('div');
+      msg.className = 'chat-message user';
+      const bubble = document.createElement('div');
+      bubble.className = 'user-bubble';
+      bubble.textContent = text;
+      msg.appendChild(bubble);
+      chatContainer.appendChild(msg);
+      scrollToBottom();
+    }
+
+    function addTypingIndicator() {
+      const msg = document.createElement('div');
+      msg.className = 'chat-message xai';
+      msg.id = 'typing-indicator';
+      msg.innerHTML =
+        '<div class="xai-avatar">X</div>' +
+        '<div class="xai-content">' +
+          '<div class="xai-name">Xai</div>' +
+          '<div class="xai-bubble">' +
+            '<div class="typing-indicator"><span></span><span></span><span></span></div>' +
+          '</div>' +
+        '</div>';
+      chatContainer.appendChild(msg);
+      scrollToBottom();
+    }
+
+    function removeTypingIndicator() {
+      const el = document.getElementById('typing-indicator');
+      if (el) el.remove();
+    }
+
+    function addOptions(options, callback) {
+      const container = document.createElement('div');
+      container.className = 'chat-options';
+      container.id = 'current-options';
+
+      options.forEach(function(opt) {
+        const btn = document.createElement('button');
+        btn.className = 'chat-option-btn';
+        if (opt.primary) btn.classList.add('primary');
+        btn.textContent = opt.label;
+        btn.addEventListener('click', function() {
+          if (State.isProcessing) return;
+          State.isProcessing = true;
+          container.remove();
+          addUserBubble(opt.label);
+          callback(opt.value, opt.label);
+        });
+        container.appendChild(btn);
+      });
+
+      chatContainer.appendChild(container);
+      scrollToBottom();
+    }
+
+    function showInputArea(placeholderText) {
+      chatInputArea.classList.add('visible');
+      chatInput.value = '';
+      chatInput.placeholder = placeholderText || 'メッセージを入力...';
+      charCount.textContent = '0';
+      chatSendBtn.disabled = true;
+      chatInput.focus();
+      scrollToBottom();
+    }
+
+    function hideInputArea() {
+      chatInputArea.classList.remove('visible');
+    }
+
+    async function delayedXaiBubble(text, delayMs, isHTML) {
+      addTypingIndicator();
+      await new Promise(function(resolve) { setTimeout(resolve, delayMs || 800); });
+      removeTypingIndicator();
+      return addXaiBubble(text, isHTML);
+    }
+
+    // ============================================
+    // SCENARIO DEFINITION
+    // ============================================
+    const SCENARIO = {
+      q1: {
+        id: 'q1', type: 'entry',
+        message: 'はじめまして、Xai（カイ）です。IT業界専門のキャリアアドバイザーをしています。<br><br>いくつか質問に答えてもらうだけで、あなたの市場価値とキャリアタイプを診断できます。所要時間は2分ほどです。',
+        options: [{ value: 'start', label: '診断をはじめる', primary: true }],
+        next: 'q2'
+      },
+      q2: {
+        id: 'q2', type: 'position',
+        message: '現在のポジションを教えてください。',
+        options: [
+          { value: 'it_engineer', label: 'ITエンジニア' },
+          { value: 'it_consultant', label: 'ITコンサル/PMO' },
+          { value: 'strategy_consultant', label: '戦略・業務コンサル' },
+          { value: 'sales', label: 'セールス/プリセールス' },
+          { value: 'corporate', label: 'コーポレート/その他' },
+          { value: 'other_industry', label: '異業種（IT・コンサルに興味あり）' }
+        ],
+        next: function(v) { return v === 'other_industry' ? 'q3_alt' : 'q3'; }
+      },
+      q3: {
+        id: 'q3', type: 'career_phase',
+        message: 'キャリアのフェーズはどのあたりですか？',
+        options: [
+          { value: 'junior', label: '1〜2年目（日々キャッチアップ中）' },
+          { value: 'mid', label: '3〜5年目（一人で回せるようになってきた）' },
+          { value: 'senior', label: '6年目以上（次のキャリアを考え始めた）' }
+        ],
+        next: 'q4'
+      },
+      q3_alt: {
+        id: 'q3_alt', type: 'industry',
+        message: '今の業界を教えてください。',
+        options: [
+          { value: 'finance', label: '金融・保険' },
+          { value: 'manufacturer', label: 'メーカー・製造' },
+          { value: 'trading', label: '商社・物流' },
+          { value: 'healthcare', label: '医療・ヘルスケア' },
+          { value: 'retail', label: '小売・流通・サービス' },
+          { value: 'infra', label: 'インフラ・不動産・建設' },
+          { value: 'government', label: '公務員・官公庁' },
+          { value: 'other', label: 'その他' }
+        ],
+        next: 'q4'
+      },
+      q4: {
+        id: 'q4', type: 'concern',
+        message: '今、一番キャリアで気になっていることは何ですか？',
+        options: [
+          { value: 'salary', label: '年収・評価が見合っていない' },
+          { value: 'upstream', label: 'もっと上流・大きい案件に関わりたい' },
+          { value: 'skill', label: '技術・専門性を伸ばしたい' },
+          { value: 'culture', label: '組織や働き方にモヤモヤがある' },
+          { value: 'options', label: '将来の選択肢を広げておきたい' }
+        ],
+        next: 'ai_dive_concern'
+      },
+      q5: {
+        id: 'q5', type: 'urgency',
+        message: '最後の質問です。転職の温度感はどのあたりですか？',
+        options: [
+          { value: 'active', label: '具体的に動いている' },
+          { value: 'ready', label: 'いい話があれば動きたい' },
+          { value: 'planning', label: '半年くらいで考えたい' },
+          { value: 'research', label: 'まずは情報収集' }
+        ],
+        next: 'result'
+      }
+    };
+
+    // ============================================
+    // DEEP DIVE: PRE-WRITTEN QUESTIONS
+    // ============================================
+    const CONCERN_QUESTIONS = {
+      salary: '年収や評価にギャップを感じているんですね。具体的にどんな場面でそう感じますか？',
+      upstream: 'もっと上流に関わりたいという気持ち、よくわかります。今のプロジェクトで物足りなさを感じるのはどんなところですか？',
+      skill: 'スキルアップを重視されてるんですね。今の環境で伸ばしにくいと感じているのはどんな部分ですか？',
+      culture: '組織の雰囲気って日々のモチベーションに直結しますよね。今の職場で気になっていることを教えてもらえますか？',
+      options: '将来の選択肢を広げたいという気持ち、大事ですよね。今どんなことを考えていますか？'
+    };
+
+    const IDEAL_QUESTIONS = {
+      remote: '柔軟な働き方を大切にされてるんですね。理想の働き方について、もう少し聞かせてもらえますか？',
+      salary_up: '年収アップは転職の大きな動機ですよね。どのくらいの水準を目指しているか、イメージがあれば教えてください。',
+      growth: '成長できる環境を求めているんですね。具体的にどんな経験を積みたいですか？',
+      culture_fit: '職場のカルチャーは大切ですよね。理想の職場の雰囲気やチーム像があれば聞かせてください。'
+    };
+
+    // ============================================
+    // DEEP DIVE: EMPATHY FALLBACKS (when AI fails)
+    // ============================================
+    const CONCERN_FALLBACKS = {
+      salary: '自分の実力に見合った評価がほしいと思うのは当然のことです。その感覚、大事にしてください。',
+      upstream: '視野を広げてもっと大きな仕事に挑みたい気持ち、伝わってきます。',
+      skill: '技術で勝負したいという気持ち、よくわかります。その向上心が強みですね。',
+      culture: '毎日過ごす環境だからこそ、妥協できないですよね。',
+      options: '先を見据えて動ける方は強いですよね。その姿勢がすでに一歩先に出ている証拠です。'
+    };
+
+    const IDEAL_FALLBACKS = {
+      remote: '自分のペースで成果を出せる環境が整えば、パフォーマンスも変わりますよね。ありがとうございます、診断に反映しますね。',
+      salary_up: '年収が上がると選択肢もぐっと広がりますよね。ありがとうございます、診断に反映しますね。',
+      growth: '成長実感が持てる環境に身を置くと、毎日の充実感が全然違いますよね。ありがとうございます、診断に反映しますね。',
+      culture_fit: '居心地のいいチームだと長く力を発揮できますよね。ありがとうございます、診断に反映しますね。',
+      default: 'ありがとうございます、診断に反映しますね。'
+    };
+
+    // Bridge messages: concern → ideal transition (context-aware)
+    const CONCERN_TO_IDEAL_BRIDGE = {
+      salary: '評価や年収のお話、よくわかりました。次は逆に、理想の環境について聞かせてください。',
+      upstream: 'キャリアの方向性が見えてきました。次は、理想の働き方についても聞かせてもらえますか？',
+      skill: '技術面でのお気持ち、伝わりました。では、環境面での理想も聞かせてください。',
+      culture: '職場環境のお話、ありがとうございます。逆に、どんな環境なら力を発揮できそうですか？',
+      options: '今考えていること、しっかり受け取りました。では、理想の働き方についても教えてください。'
+    };
+
+    // ============================================
+    // DIAGNOSIS TYPES (same as scenario)
+    // ============================================
+    const DIAGNOSIS_TYPES = {
+      skill_value: {
+        name: 'アンダーバリュード', tagline: '実力の割に、損してる',
+        marketPosition: '市場価値：過小評価の可能性',
+        description: '周りより技術力があるのに、なぜか年収は同じか低い──そんな経験ありませんか？あなたのスキルは、今の環境では正当に評価されていない可能性があります。同じスキルでも、企業によって年収に200万円以上の差がつくのがこの業界です。',
+        strengths: ['専門スキル', '実務経験', '即戦力'],
+        nextStep: 'まずは現在の市場価値を客観的に把握することが重要です。あなたのスキルセットの相場感をお伝えします。'
+      },
+      tech_depth: {
+        name: 'ディープダイバー', tagline: '技術を極めたい。それが最大の武器になる',
+        marketPosition: '専門特化型：需要増加中',
+        description: '気になったら調べずにいられない──その探究心こそが、AI時代に最も価値を持つ資質です。深い専門性を持つエンジニアの市場価値は年々上昇しています。',
+        strengths: ['技術的深度', '問題解決力', '学習速度'],
+        nextStep: '専門性を軸に、技術顧問やアーキテクトなど上流ポジションへの展開も視野に入れるタイミングです。'
+      },
+      career_up: {
+        name: 'アップストリーマー', tagline: '下流で手を動かすより、上流で絵を描きたい',
+        marketPosition: 'ポジションアップ適性：高',
+        description: 'もっと上流から関わりたい、大きな案件で全体を見たい──その意欲は、キャリアを加速させる重要なシグナルです。コンサルやプライムSIerでは、同じ経験年数でも関われる案件の規模がまったく違います。',
+        strengths: ['推進力', '視座の高さ', 'リーダーシップ'],
+        nextStep: '現在の経験を活かしつつ、より上流・大規模な案件に関われるポジションを探すタイミングです。'
+      },
+      environment: {
+        name: 'フィットシーカー', tagline: '能力の問題じゃない。環境が合ってないだけ',
+        marketPosition: '環境変更による伸びしろ：大',
+        description: '「ここじゃない」という感覚がずっとある──それは正しい直感です。環境が合えば、あなたの実力は何倍にも発揮されます。',
+        strengths: ['自己理解', '環境適応力', '持続力'],
+        nextStep: 'カルチャーフィットを重視した企業選びで、長期的に活躍できる環境を見つけることが重要です。'
+      },
+      career_change: {
+        name: 'クロスオーバー', tagline: '異業種の経験、それは武器になる',
+        marketPosition: '業界知見×IT：採用ニーズ増',
+        description: '「未経験だから無理かも」と思っていませんか？IT・コンサル業界では業界知見を持つ人材の需要が急増しています。あなたの「前職の当たり前」が、この業界では希少な専門性になります。',
+        strengths: ['業界知見', '多角的視点', 'チャレンジ精神'],
+        nextStep: '現職の業界知見を活かせるIT・コンサルポジションを探すことで、キャリアチェンジの成功率が上がります。'
+      },
+      growth: {
+        name: 'オプションメーカー', tagline: '今すぐじゃない。でも、準備はしておきたい',
+        marketPosition: '情報収集フェーズ：準備OK',
+        description: '転職するかはわからない。でも、いざという時に動けないのは嫌だ──その姿勢こそが、キャリアを切り開く最大の武器です。選択肢を持つ人と持たない人では、5年後に大きな差がつきます。',
+        strengths: ['成長意欲', '柔軟性', '将来性'],
+        nextStep: '今のうちに選択肢を把握し、いざという時に動ける準備をしておくことが重要です。'
+      }
+    };
+
+    function getDiagnosisType(answers) {
+      const { position, concern } = answers;
+      if (position === 'other_industry') return DIAGNOSIS_TYPES.career_change;
+      if (position === 'it_engineer') {
+        if (concern === 'salary') return DIAGNOSIS_TYPES.skill_value;
+        if (concern === 'skill') return DIAGNOSIS_TYPES.tech_depth;
+        if (concern === 'upstream') return DIAGNOSIS_TYPES.career_up;
+        if (concern === 'culture') return DIAGNOSIS_TYPES.environment;
+        if (concern === 'options') return DIAGNOSIS_TYPES.growth;
+      }
+      if (position === 'it_consultant') {
+        if (concern === 'upstream') return DIAGNOSIS_TYPES.career_up;
+        if (concern === 'salary') return DIAGNOSIS_TYPES.skill_value;
+        if (concern === 'skill') return DIAGNOSIS_TYPES.tech_depth;
+        if (concern === 'culture') return DIAGNOSIS_TYPES.environment;
+        if (concern === 'options') return DIAGNOSIS_TYPES.growth;
+      }
+      if (position === 'strategy_consultant') {
+        if (concern === 'upstream') return DIAGNOSIS_TYPES.career_up;
+        if (concern === 'salary') return DIAGNOSIS_TYPES.skill_value;
+        if (concern === 'skill') return DIAGNOSIS_TYPES.career_up;
+        if (concern === 'culture') return DIAGNOSIS_TYPES.environment;
+        if (concern === 'options') return DIAGNOSIS_TYPES.growth;
+      }
+      if (position === 'sales') {
+        if (concern === 'salary') return DIAGNOSIS_TYPES.skill_value;
+        if (concern === 'upstream') return DIAGNOSIS_TYPES.career_up;
+        if (concern === 'skill') return DIAGNOSIS_TYPES.career_up;
+        if (concern === 'culture') return DIAGNOSIS_TYPES.environment;
+        if (concern === 'options') return DIAGNOSIS_TYPES.growth;
+      }
+      if (position === 'corporate') {
+        if (concern === 'options') return DIAGNOSIS_TYPES.career_change;
+        if (concern === 'culture') return DIAGNOSIS_TYPES.environment;
+        return DIAGNOSIS_TYPES.career_change;
+      }
+      return DIAGNOSIS_TYPES.growth;
+    }
+
+    // ============================================
+    // AI API CALL
+    // ============================================
+    async function callAI(messages, systemPrompt, maxTokens) {
+      try {
+        const body = { messages: messages, system: systemPrompt };
+        if (maxTokens) body.max_tokens = maxTokens;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function() { controller.abort(); }, 8000);
+        const response = await fetch(EDGE_FUNCTION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (!response.ok) throw new Error('API error: ' + response.status);
+        const data = await response.json();
+        return data.content || null;
+      } catch (e) {
+        console.error('[AI] Call failed:', e);
+        return null;
+      }
+    }
+
+    async function callAIWithRetry(messages, systemPrompt, maxTokens) {
+      var result = await callAI(messages, systemPrompt, maxTokens);
+      if (!result) {
+        result = await callAI(messages, systemPrompt, maxTokens);
+      }
+      return result;
+    }
+
+    // ============================================
+    // AI RESPONSE VALIDATION (safety net)
+    // ============================================
+    function validateAIResponse(text, type) {
+      if (!text || text.trim().length === 0) return false;
+      // Markdown detection: bold, headings, bullet lists
+      if (text.includes('**') || text.includes('##') || /^#\s/m.test(text) || /^\s*[-*]\s/m.test(text)) return false;
+      if (type === 'empathy') {
+        // Reject if contains any question mark (not just at end)
+        if (text.includes('？') || text.includes('?')) return false;
+        if (text.length > 150) return false;
+      }
+      if (type === 'diagnosis') {
+        if (text.length > 400) return false;
+      }
+      return true;
+    }
+
+    // ============================================
+    // FLOW CONTROLLER
+    // ============================================
+    async function processStep(stepId, value, label) {
+      const step = SCENARIO[stepId];
+
+      // Q1: Start session
+      if (stepId === 'q1') {
+        State.scenarioSessionId = generateUUID();
+        State.sessionStartTime = Date.now();
+        await saveScenario({ ...getUTMParams(), ...getDeviceInfo(), last_question: 'q1' });
+        await createAiSession();
+      }
+
+      // Save answer
+      if (step && step.type && step.type !== 'entry') {
+        State.answers[step.type] = value;
+        State.lastQuestionId = stepId;
+        const saveData = { last_question: stepId };
+        saveData[step.type] = value;
+        saveScenario(saveData);
+      }
+
+      // Determine next step
+      let nextId;
+      if (step) {
+        nextId = typeof step.next === 'function' ? step.next(value) : step.next;
+      }
+
+      // AI deep dive after Q4 (concern)
+      if (nextId === 'ai_dive_concern') {
+        await handleAIDiveConcern(value, label);
+        return;
+      }
+
+      // Show result
+      if (nextId === 'result') {
+        await showResult();
+        return;
+      }
+
+      // Show next scenario question
+      if (nextId) {
+        await showScenarioStep(nextId);
+      }
+
+      State.isProcessing = false;
+    }
+
+    async function showScenarioStep(stepId) {
+      const step = SCENARIO[stepId];
+      if (!step) return;
+
+      State.currentStep = stepId;
+      await delayedXaiBubble(step.message, 600, true);
+      addOptions(step.options, function(value, label) {
+        processStep(stepId, value, label);
+      });
+    }
+
+    // ============================================
+    // AI DEEP DIVE: CONCERN (Q4 -> AI -> Q5 flow with ideal dive)
+    // ============================================
+    async function handleAIDiveConcern(concernValue, concernLabel) {
+      // Use pre-written question (not AI-generated)
+      const question = CONCERN_QUESTIONS[concernValue] || CONCERN_QUESTIONS.options;
+      await delayedXaiBubble(question, 800);
+      saveAiMessage('assistant', question);
+
+      // Store context for later AI empathy call
+      State.concernLabel = concernLabel;
+
+      // Show text input for user response
+      showInputArea('思っていることを自由に書いてください');
+      State.currentStep = 'ai_dive_concern_input';
+      State.isProcessing = false;
+    }
+
+    async function handleConcernUserInput(userText) {
+      saveAiMessage('user', userText);
+      State.concernUserText = userText; // Store for diagnosis personalization
+
+      // Short input → skip AI, use fallback directly
+      if (userText.length < 5) {
+        var fallback = CONCERN_FALLBACKS[State.answers.concern] || CONCERN_FALLBACKS.options;
+        await delayedXaiBubble(fallback, 600);
+        await proceedToIdealQuestion();
+        return;
+      }
+
+      // Empathy prompt — acknowledge feeling, short and warm
+      var systemPrompt = '転職支援チャットボットです。ユーザーがキャリアの悩みを詳しく話してくれました。' +
+        '\n共感する1〜2文を書いてください。ユーザーの気持ちに寄り添い、「その感覚は大切なサインですよね。」のように一歩踏み込んでください。' +
+        '\nルール: 質問しない。事実のおうむ返し禁止。プレーンテキストのみ。2文以内。' +
+        '\nNG例: 「〜ですか？」「〜でしょうか？」←質問禁止。「**太字**」「- 箇条書き」←Markdown禁止。';
+
+      var messages = [
+        { role: 'user', content: '悩み: ' + (State.concernLabel || '') + '\n詳細: ' + userText }
+      ];
+
+      addTypingIndicator();
+      var aiResponse = await callAIWithRetry(messages, systemPrompt, 100);
+      removeTypingIndicator();
+
+      if (aiResponse && validateAIResponse(aiResponse, 'empathy')) {
+        addXaiBubble(aiResponse);
+        saveAiMessage('assistant', aiResponse);
+      } else {
+        var fallback = CONCERN_FALLBACKS[State.answers.concern] || CONCERN_FALLBACKS.options;
+        await delayedXaiBubble(fallback, 600);
+      }
+
+      await proceedToIdealQuestion();
+    }
+
+    // ============================================
+    // Q5 (IDEAL) -> AI DIVE -> Q5 (URGENCY)
+    // ============================================
+    async function proceedToIdealQuestion() {
+      State.isProcessing = false;
+      // Show bridge to ideal question (context-aware based on concern)
+      var bridge = CONCERN_TO_IDEAL_BRIDGE[State.answers.concern] || CONCERN_TO_IDEAL_BRIDGE.options;
+      await delayedXaiBubble(bridge, 800);
+      addOptions([
+        { value: 'remote', label: 'リモートワーク・柔軟な働き方' },
+        { value: 'salary_up', label: '年収アップ' },
+        { value: 'growth', label: '成長できる環境・裁量' },
+        { value: 'culture_fit', label: 'カルチャーが合う職場' }
+      ], function(value, label) {
+        State.answers.ideal = value;
+        State.isProcessing = true;
+        handleAIDiveIdeal(value, label);
+      });
+    }
+
+    async function handleAIDiveIdeal(idealValue, idealLabel) {
+      // Use pre-written question (not AI-generated)
+      const question = IDEAL_QUESTIONS[idealValue] || IDEAL_QUESTIONS.remote;
+      await delayedXaiBubble(question, 800);
+      saveAiMessage('assistant', question);
+
+      // Store context for later AI empathy call
+      State.idealLabel = idealLabel;
+
+      // Show text input for user response
+      showInputArea('理想の働き方を自由に書いてください');
+      State.currentStep = 'ai_dive_ideal_input';
+      State.isProcessing = false;
+    }
+
+    async function handleIdealUserInput(userText) {
+      saveAiMessage('user', userText);
+      State.idealUserText = userText; // Store for diagnosis personalization
+
+      // Short input → skip AI, use fallback directly
+      if (userText.length < 5) {
+        var fallback = IDEAL_FALLBACKS[State.answers.ideal] || IDEAL_FALLBACKS.default;
+        await delayedXaiBubble(fallback, 600);
+        State.isProcessing = false;
+        await showScenarioStep('q5');
+        return;
+      }
+
+      // Empathy prompt — acknowledge feeling, then wrap up for diagnosis
+      var systemPrompt = '転職支援チャットボットです。ユーザーが理想の働き方を詳しく話してくれました。' +
+        '\n1文目: ユーザーの理想像に共感する（事実の繰り返しではなく、その理想が叶ったらどう変わるかに触れる）' +
+        '\n2文目: 「ありがとうございます、診断に反映しますね。」で締める。' +
+        '\nルール: 質問しない。事実のおうむ返し禁止。プレーンテキストのみ。' +
+        '\nNG例: 「〜ですか？」←質問禁止。「**太字**」「- 箇条書き」←Markdown禁止。';
+
+      var messages = [
+        { role: 'user', content: '理想: ' + (State.idealLabel || '') + '\n詳細: ' + userText }
+      ];
+
+      addTypingIndicator();
+      var aiResponse = await callAIWithRetry(messages, systemPrompt, 100);
+      removeTypingIndicator();
+
+      if (aiResponse && validateAIResponse(aiResponse, 'empathy')) {
+        addXaiBubble(aiResponse);
+        saveAiMessage('assistant', aiResponse);
+      } else {
+        var fallback = IDEAL_FALLBACKS[State.answers.ideal] || IDEAL_FALLBACKS.default;
+        await delayedXaiBubble(fallback, 600);
+      }
+
+      State.isProcessing = false;
+      await showScenarioStep('q5');
+    }
+
+    // ============================================
+    // RESULT
+    // ============================================
+    async function showResult() {
+      const result = getDiagnosisType(State.answers);
+      const diagnosisKey = Object.keys(DIAGNOSIS_TYPES).find(function(k) {
+        return DIAGNOSIS_TYPES[k] === result;
+      });
+
+      // Save to scenario_chatbot
+      const duration = State.sessionStartTime ? Math.round((Date.now() - State.sessionStartTime) / 1000) : null;
+      saveScenario({
+        diagnosis_type: diagnosisKey,
+        completed: true,
+        last_question: 'result',
+        session_duration: duration
+      });
+
+      // Show typing with personalized message
+      const diagnosingMsg = await delayedXaiBubble('あなたにぴったりのキャリアタイプを診断しています...', 500);
+      diagnosingMsg.id = 'diagnosing-msg';
+
+      // Try to get personalized description from AI
+      var personalizedDescription = null;
+      var posLabels = {
+        it_engineer: 'ITエンジニア',
+        it_consultant: 'ITコンサル/PMO',
+        strategy_consultant: '戦略・業務コンサル',
+        sales: 'セールス/プリセールス',
+        corporate: 'コーポレート/その他',
+        other_industry: '異業種'
+      };
+      var concernLabels = {
+        salary: '年収・評価', upstream: '上流・大型案件',
+        skill: '技術力・専門性', culture: '社風・人間関係', options: '選択肢・可能性'
+      };
+      var idealLabels = {
+        remote: 'リモート・柔軟な働き方', salary_up: '年収アップ',
+        growth: '成長できる環境・裁量', culture_fit: 'カルチャーが合う職場'
+      };
+
+      var diagSystemPrompt = '転職支援チャットボットです。診断結果の説明文を3〜4文で書いてください。' +
+        '\nユーザー情報:' +
+        '\n- ポジション: ' + (posLabels[State.answers.position] || '不明') +
+        '\n- 悩み: ' + (concernLabels[State.answers.concern] || '不明') +
+        (State.concernUserText ? '\n- 悩みの詳細（本人の言葉）: 「' + State.concernUserText + '」' : '') +
+        '\n- 理想: ' + (idealLabels[State.answers.ideal] || '不明') +
+        (State.idealUserText ? '\n- 理想の詳細（本人の言葉）: 「' + State.idealUserText + '」' : '') +
+        '\n- 診断タイプ: ' + result.name + '（' + result.tagline + '）' +
+        '\nルール: タイプ名を書かない。ユーザーの言葉を自然に引用する。前向きに締める。プレーンテキストのみ。' +
+        '\nNG例: 「〜タイプ」←タイプ名禁止。「**太字**」「- 箇条書き」←Markdown禁止。';
+
+      var aiMessages = [{ role: 'user', content: '診断結果の説明をお願いします。' }];
+
+      personalizedDescription = await callAIWithRetry(aiMessages, diagSystemPrompt, 300);
+      if (!validateAIResponse(personalizedDescription, 'diagnosis')) {
+        personalizedDescription = null; // Use static fallback
+      }
+
+      // Remove the "diagnosing" bubble
+      const diagEl = document.getElementById('diagnosing-msg');
+      if (diagEl) diagEl.remove();
+
+      // Save completion data as INSERT (no UPDATE needed = no UPDATE RLS policy needed)
+      saveAiSessionResult({
+        completed: true,
+        diagnosis_type: diagnosisKey,
+        ai_analysis: personalizedDescription || null,
+        total_messages: State.messageOrder
+      });
+
+      // Show result
+      await delayedXaiBubble('お待たせしました、あなたの診断結果です。', 400);
+
+      // Result card
+      const resultCard = document.createElement('div');
+      resultCard.className = 'result-card-chat';
+      resultCard.innerHTML =
+        '<h2 class="result-type-chat">' + result.name + '</h2>' +
+        '<p class="result-tagline-chat">' + result.tagline + '</p>' +
+        '<div class="result-divider-chat"></div>' +
+        '<div class="market-position-chat">' + result.marketPosition + '</div>' +
+        '<p class="result-description-chat">' + escapeHTML(personalizedDescription || result.description) + '</p>' +
+        '<div class="strength-tags-chat">' +
+          result.strengths.map(function(s) { return '<span class="strength-tag-chat">' + s + '</span>'; }).join('') +
+        '</div>' +
+        '<div class="next-step-chat">' +
+          '<p class="next-step-label-chat">Next Step</p>' +
+          '<p class="next-step-text-chat">' + result.nextStep + '</p>' +
+        '</div>';
+      chatContainer.appendChild(resultCard);
+      resultCard.style.animation = 'fadeInUp 0.4s ease forwards';
+      resultCard.style.opacity = '0';
+      scrollToBottom();
+
+      // CTA
+      await new Promise(function(resolve) { setTimeout(resolve, 600); });
+      await delayedXaiBubble('この診断結果をもとに、あなたに合った求人をLINEでご紹介できます。初年度年収100万円UPの実績もありますよ。', 600);
+
+      const ctaSection = document.createElement('div');
+      ctaSection.className = 'cta-section-chat';
+      ctaSection.innerHTML =
+        '<div class="cta-benefit-chat">初年度年収100万円UP確約 ── 自信があるから、約束します</div>' +
+        '<button class="cta-button-chat" id="line-button-chat">' +
+          '<svg class="line-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+            '<path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>' +
+          '</svg>' +
+          'LINEで求人を受け取る' +
+        '</button>' +
+        '<p class="cta-note-chat">※ 登録無料・1分で完了 ｜ 年間相談実績 1,500名超</p>' +
+        '<p class="retry-link-chat" id="retry-chat">もう一度診断する</p>';
+      chatContainer.appendChild(ctaSection);
+      ctaSection.style.animation = 'fadeInUp 0.4s ease forwards';
+      ctaSection.style.opacity = '0';
+      scrollToBottom();
+
+      // Event listeners
+      document.getElementById('line-button-chat').addEventListener('click', function() {
+        saveScenario({ line_clicked: true });
+        window.location.href = 'https://lin.ee/0zcZZyg';
+      });
+
+      document.getElementById('retry-chat').addEventListener('click', handleRetry);
+
+      State.isProcessing = false;
+    }
+
+    // ============================================
+    // RETRY
+    // ============================================
+    function handleRetry() {
+      State.scenarioSessionId = null;
+      State.aiSessionId = null;
+      State.sessionStartTime = null;
+      State.answers = {};
+      State.currentStep = null;
+      State.aiMessages = [];
+      State.messageOrder = 0;
+      State.isProcessing = false;
+      State.lastQuestionId = 'q1';
+      exitSaved = false;
+
+      chatContainer.innerHTML = '';
+      hideInputArea();
+      startChat();
+    }
+
+    // ============================================
+    // INPUT HANDLERS
+    // ============================================
+    chatInput.addEventListener('input', function() {
+      const len = chatInput.value.length;
+      charCount.textContent = len;
+      chatSendBtn.disabled = len === 0;
+
+      // Auto-resize
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+    });
+
+    chatInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (!chatSendBtn.disabled) handleSend();
+      }
+    });
+
+    chatSendBtn.addEventListener('click', handleSend);
+
+    function handleSend() {
+      const text = chatInput.value.trim();
+      if (!text || State.isProcessing) return;
+
+      State.isProcessing = true;
+      hideInputArea();
+      addUserBubble(text);
+
+      if (State.currentStep === 'ai_dive_concern_input') {
+        handleConcernUserInput(text);
+      } else if (State.currentStep === 'ai_dive_ideal_input') {
+        handleIdealUserInput(text);
+      }
+    }
+
+    // ============================================
+    // START
+    // ============================================
+    async function startChat() {
+      await showScenarioStep('q1');
+    }
+
+    document.addEventListener('DOMContentLoaded', startChat);
+  </script>
+
+</body>
+</html>
